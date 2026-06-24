@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dining Hall Tier List</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      margin-bottom: 0.25rem;
+    }
+
+    header p {
+      color: #aaa;
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+
+    #reset-btn {
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+    }
+
+    #reset-btn:hover { background: #666; }
+
+    .section-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+      margin-bottom: 0.5rem;
+    }
+
+    #pool {
+      background: #16213e;
+      border: 2px dashed #444;
+      border-radius: 12px;
+      padding: 0.75rem;
+      margin-bottom: 1.25rem;
+      min-height: 72px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    #pool.drag-over {
+      border-color: #7ec8e3;
+      background: #1a2744;
+    }
+
+    .drop-zone {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      min-height: 48px;
+    }
+
+    .meal-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #2a2a4a;
+      border: 1px solid #555;
+      border-radius: 999px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+      cursor: grab;
+      user-select: none;
+      transition: transform 0.1s, opacity 0.15s, box-shadow 0.15s;
+      white-space: nowrap;
+    }
+
+    .meal-chip:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      transform: translateY(-1px);
+    }
+
+    .meal-chip:active { cursor: grabbing; }
+
+    .meal-chip.dragging {
+      opacity: 0.4;
+    }
+
+    .meal-chip .emoji { font-size: 1.1rem; line-height: 1; }
+
+    #tiers { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .tier-row {
+      display: flex;
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 56px;
+      transition: outline 0.15s;
+    }
+
+    .tier-row.drag-over {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    .tier-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 72px;
+      padding: 0.5rem;
+      font-weight: 800;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .tier-label .tier-emoji { font-size: 1.25rem; line-height: 1; }
+    .tier-label .tier-name { font-size: 0.6rem; font-weight: 600; text-align: center; margin-top: 2px; opacity: 0.85; }
+
+    .tier-drop {
+      flex: 1;
+      padding: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      min-height: 56px;
+    }
+
+    .tier-s .tier-label { background: #ffd700; color: #333; }
+    .tier-s .tier-drop   { background: rgba(255, 215, 0, 0.15); }
+
+    .tier-a .tier-label { background: #4caf50; color: #fff; }
+    .tier-a .tier-drop   { background: rgba(76, 175, 80, 0.15); }
+
+    .tier-b .tier-label { background: #42a5f5; color: #fff; }
+    .tier-b .tier-drop   { background: rgba(66, 165, 245, 0.15); }
+
+    .tier-c .tier-label { background: #ffca28; color: #333; }
+    .tier-c .tier-drop   { background: rgba(255, 202, 40, 0.12); }
+
+    .tier-d .tier-label { background: #ff7043; color: #fff; }
+    .tier-d .tier-drop   { background: rgba(255, 112, 67, 0.15); }
+
+    .tier-f .tier-label { background: #e53935; color: #fff; }
+    .tier-f .tier-drop   { background: rgba(229, 57, 53, 0.15); }
+
+    footer {
+      text-align: center;
+      color: #666;
+      font-size: 0.8rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 480px) {
+      header h1 { font-size: 1.35rem; }
+      .tier-label { min-width: 56px; font-size: 1.1rem; }
+      .meal-chip { font-size: 0.8rem; padding: 0.35rem 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🍽️ Dining Hall Tier List</h1>
+    <p>Rank the classics. Be honest.</p>
+    <button id="reset-btn" type="button">↺ Reset</button>
+  </header>
+
+  <p class="section-label">Unranked</p>
+  <section id="pool" class="drop-zone" data-zone="pool"></section>
+
+  <p class="section-label">Tiers</p>
+  <section id="tiers"></section>
+
+  <footer>Drag meals into tiers. Refresh to start over.</footer>
+
+  <script>
+    const TIERS = [
+      { id: 's', letter: 'S', emoji: '👑', name: 'Legendary',  cls: 'tier-s' },
+      { id: 'a', letter: 'A', emoji: '😋', name: 'Actually good', cls: 'tier-a' },
+      { id: 'b', letter: 'B', emoji: '👍', name: 'Fine',       cls: 'tier-b' },
+      { id: 'c', letter: 'C', emoji: '😐', name: 'Mid',        cls: 'tier-c' },
+      { id: 'd', letter: 'D', emoji: '😬', name: 'Skip it',    cls: 'tier-d' },
+      { id: 'f', letter: 'F', emoji: '💀', name: 'Never again', cls: 'tier-f' },
+    ];
+
+    const MEALS = [
+      { id: 'pancakes',       emoji: '🥞', name: 'Pancakes' },
+      { id: 'waffles',        emoji: '🧇', name: 'Waffles' },
+      { id: 'scrambled-eggs', emoji: '🍳', name: 'Scrambled Eggs' },
+      { id: 'bacon',          emoji: '🥓', name: 'Bacon' },
+      { id: 'sausage',        emoji: '🌭', name: 'Sausage' },
+      { id: 'oatmeal',        emoji: '🥣', name: 'Oatmeal' },
+      { id: 'bagels',         emoji: '🥯', name: 'Bagels' },
+      { id: 'yogurt-parfait', emoji: '🍓', name: 'Yogurt Parfait' },
+      { id: 'muffins',        emoji: '🧁', name: 'Muffins' },
+      { id: 'cereal-bar',     emoji: '🥣', name: 'Cereal Bar' },
+      { id: 'chicken-tenders', emoji: '🍗', name: 'Chicken Tenders' },
+      { id: 'pizza',          emoji: '🍕', name: 'Pizza' },
+      { id: 'mac-and-cheese', emoji: '🧀', name: 'Mac & Cheese' },
+      { id: 'burgers',        emoji: '🍔', name: 'Burgers' },
+      { id: 'grilled-cheese', emoji: '🥪', name: 'Grilled Cheese' },
+      { id: 'spaghetti',      emoji: '🍝', name: 'Spaghetti & Meatballs' },
+      { id: 'meatloaf',       emoji: '🥩', name: 'Meatloaf' },
+      { id: 'tacos',          emoji: '🌮', name: 'Taco Bar' },
+      { id: 'burrito-bar',    emoji: '🌯', name: 'Burrito Bar' },
+      { id: 'deli-sandwich',  emoji: '🥪', name: 'Deli Sandwich Bar' },
+      { id: 'hot-dogs',       emoji: '🌭', name: 'Hot Dogs' },
+      { id: 'grilled-chicken', emoji: '🍗', name: 'Grilled Chicken' },
+      { id: 'fish-sticks',    emoji: '🐟', name: 'Fish Sticks' },
+      { id: 'stir-fry',       emoji: '🥡', name: 'Stir Fry' },
+      { id: 'fried-rice',     emoji: '🍚', name: 'Fried Rice' },
+      { id: 'orange-chicken', emoji: '🍊', name: 'Orange Chicken' },
+      { id: 'chicken-parm',   emoji: '🍗', name: 'Chicken Parmesan' },
+      { id: 'pulled-pork',    emoji: '🐷', name: 'Pulled Pork' },
+      { id: 'sloppy-joes',    emoji: '🥫', name: 'Sloppy Joes' },
+      { id: 'chili',          emoji: '🌶️', name: 'Chili' },
+      { id: 'nachos',         emoji: '🧀', name: 'Nachos' },
+      { id: 'fries',          emoji: '🍟', name: 'Fries' },
+      { id: 'tater-tots',     emoji: '🥔', name: 'Tater Tots' },
+      { id: 'mashed-potatoes', emoji: '🥔', name: 'Mashed Potatoes' },
+      { id: 'caesar-salad',   emoji: '🥗', name: 'Caesar Salad' },
+      { id: 'salad-bar',      emoji: '🥬', name: 'Salad Bar' },
+      { id: 'garlic-bread',   emoji: '🍞', name: 'Garlic Bread' },
+      { id: 'roasted-veggies', emoji: '🥦', name: 'Roasted Veggies' },
+      { id: 'cookies',        emoji: '🍪', name: 'Chocolate Chip Cookies' },
+      { id: 'brownies',       emoji: '🍫', name: 'Brownies' },
+      { id: 'ice-cream',      emoji: '🍨', name: 'Ice Cream Bar' },
+      { id: 'chocolate-milk', emoji: '🥛', name: 'Chocolate Milk' },
+    ];
+
+    let draggedChip = null;
+
+    function createChip(meal) {
+      const chip = document.createElement('div');
+      chip.className = 'meal-chip';
+      chip.draggable = true;
+      chip.dataset.id = meal.id;
+      chip.innerHTML = `<span class="emoji">${meal.emoji}</span><span class="name">${meal.name}</span>`;
+      chip.addEventListener('dragstart', onDragStart);
+      chip.addEventListener('dragend', onDragEnd);
+      return chip;
+    }
+
+    function initDOM() {
+      const pool = document.getElementById('pool');
+      const tiersEl = document.getElementById('tiers');
+
+      MEALS.forEach(meal => pool.appendChild(createChip(meal)));
+
+      TIERS.forEach(tier => {
+        const row = document.createElement('div');
+        row.className = `tier-row ${tier.cls}`;
+        row.innerHTML = `
+          <div class="tier-label">
+            <span>${tier.letter}</span>
+            <span class="tier-emoji">${tier.emoji}</span>
+            <span class="tier-name">${tier.name}</span>
+          </div>
+          <div class="tier-drop drop-zone" data-zone="${tier.id}"></div>
+        `;
+        tiersEl.appendChild(row);
+      });
+
+      document.querySelectorAll('.drop-zone').forEach(zone => {
+        zone.addEventListener('dragover', onDragOver);
+        zone.addEventListener('dragleave', onDragLeave);
+        zone.addEventListener('drop', onDrop);
+      });
+
+      document.getElementById('reset-btn').addEventListener('click', reset);
+    }
+
+    function onDragStart(e) {
+      draggedChip = e.currentTarget;
+      draggedChip.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedChip.dataset.id);
+    }
+
+    function onDragEnd() {
+      if (draggedChip) draggedChip.classList.remove('dragging');
+      draggedChip = null;
+      document.querySelectorAll('.drag-over').forEach(el => {
+        el.classList.remove('drag-over');
+        el.closest('.tier-row')?.classList.remove('drag-over');
+      });
+    }
+
+    function setDragOver(zone, active) {
+      if (!zone) return;
+      zone.classList.toggle('drag-over', active);
+      zone.closest('.tier-row')?.classList.toggle('drag-over', active);
+    }
+
+    function onDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      setDragOver(getDropZone(e.target), true);
+    }
+
+    function onDragLeave(e) {
+      const zone = getDropZone(e.target);
+      if (zone && !zone.contains(e.relatedTarget)) {
+        setDragOver(zone, false);
+      }
+    }
+
+    function getDropZone(el) {
+      return el.closest('.drop-zone');
+    }
+
+    function getInsertBefore(zone, clientX, clientY) {
+      const chips = [...zone.querySelectorAll('.meal-chip:not(.dragging)')];
+      for (const chip of chips) {
+        const rect = chip.getBoundingClientRect();
+        const midX = rect.left + rect.width / 2;
+        const midY = rect.top + rect.height / 2;
+        if (clientY < midY || (clientY < rect.bottom && clientX < midX)) {
+          return chip;
+        }
+      }
+      return null;
+    }
+
+    function onDrop(e) {
+      e.preventDefault();
+      const zone = getDropZone(e.target);
+      if (!zone || !draggedChip) return;
+
+      setDragOver(zone, false);
+      const insertBefore = getInsertBefore(zone, e.clientX, e.clientY);
+      if (insertBefore) {
+        zone.insertBefore(draggedChip, insertBefore);
+      } else {
+        zone.appendChild(draggedChip);
+      }
+    }
+
+    function reset() {
+      const pool = document.getElementById('pool');
+      MEALS.forEach(meal => {
+        const chip = document.querySelector(`.meal-chip[data-id="${meal.id}"]`);
+        if (chip) pool.appendChild(chip);
+      });
+    }
+
+    initDOM();
+  </script>
+</body>
+</html>
